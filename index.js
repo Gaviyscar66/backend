@@ -19,7 +19,10 @@ app.post("/register", (req, res) => {
   `;
 
   db.query(sql, [nombre, apellido, correo, cedula, contrasena], (err) => {
-    if (err) return res.status(500).json(err);
+    if (err) {
+      console.log("ERROR REGISTER:", err);
+      return res.status(500).json(err);
+    }
 
     res.json("Usuario registrado");
   });
@@ -34,7 +37,10 @@ app.post("/login", (req, res) => {
   `;
 
   db.query(sql, [correo, contrasena], (err, result) => {
-    if (err) return res.status(500).json("Error servidor");
+    if (err) {
+      console.log("ERROR LOGIN:", err);
+      return res.status(500).json(err);
+    }
 
     if (result.length > 0) {
       res.json("Login correcto");
