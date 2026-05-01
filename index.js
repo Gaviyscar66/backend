@@ -43,7 +43,7 @@ app.post("/login", (req, res) => {
     }
 
     if (result.length > 0) {
-      res.json("Login correcto");
+      res.json(result[0]);
     } else {
       res.status(401).json("Correo o contraseña incorrectos");
     }
