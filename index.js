@@ -86,7 +86,19 @@ app.post("/like", (req, res) => {
   db.query(sql, [de_usuario, para_usuario], (err) => {
     if (err) return res.status(500).json(err);
 
-    res.json("Like guardado");
+    const matchSql = `
+      SELECT * FROM likes
+      WHERE de_usuario = ?
+      AND para_usuario = ?
+    `;
+
+    db.query(matchSql, [para_usuario, de_usuario], (err, result) => {
+      if (result.length > 0) {
+        res.json({ match: true });
+      } else {
+        res.json({ match: false });
+      }
+    });
   });
 });
 
