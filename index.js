@@ -75,6 +75,36 @@ app.get("/feed/:id", (req, res) => {
   });
 });
 
+app.post("/like", (req, res) => {
+  const { de_usuario, para_usuario } = req.body;
+
+  const sql = `
+    INSERT INTO likes (de_usuario, para_usuario)
+    VALUES (?, ?)
+  `;
+
+  db.query(sql, [de_usuario, para_usuario], (err) => {
+    if (err) return res.status(500).json(err);
+
+    res.json("Like guardado");
+  });
+});
+
+app.post("/nope", (req, res) => {
+  const { de_usuario, para_usuario } = req.body;
+
+  const sql = `
+    INSERT INTO dislikes (de_usuario, para_usuario)
+    VALUES (?, ?)
+  `;
+
+  db.query(sql, [de_usuario, para_usuario], (err) => {
+    if (err) return res.status(500).json(err);
+
+    res.json("Nope guardado");
+  });
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
