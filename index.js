@@ -117,15 +117,41 @@ app.post("/nope", (req, res) => {
   });
 });
 
-app.get("/perfil/:id", (req, res) => {
-  const id = req.params.id;
+app.post("/like", (req, res) => {
+  const { de_usuario, para_usuario } = req.body;
 
-  const sql = "SELECT * FROM usuarios WHERE id = ?";
+  // 1. Usamos "INSERT IGNORE" para que si ya existe el like, no lance error 500
+  const sql = `
+    INSERT IGNORE INTO likes (de_usuario, para_usuario)
+    VALUES (?, ?)
+  `;
 
-  db.query(sql, [id], (err, result) => {
-    if (err) return res.status(500).json(err);
+  db.query(sql, [de_usuario, para_usuario], (err) => {
+    if (err) {
+      console.error("ERROR AL INSERTAR LIKE:", err);
+      return res.status(500).json({ error: "No se pudo guardar el like" });
+    }
 
-    res.json(result[0]);
+    // 2. Verificamos el Match
+    const matchSql = `
+      SELECT * FROM likes 
+      WHERE de_usuario = ? AND para_usuario = ?
+    `;
+
+    db.query(matchSql, [para_usuario, de_usuario], (err, result) => {
+      // SIEMPRE verifica el error en consultas anidadas
+      if (err) {
+        console.error("ERROR AL BUSCAR MATCH:", err);
+        return res.status(500).json({ error: "Error al procesar match" });
+      }
+
+      // Si result existe y tiene filas, es match
+      if (result && result.length > 0) {
+        res.json({ match: true });
+      } else {
+        res.json({ match: false });
+      }
+    });
   });
 });
 
