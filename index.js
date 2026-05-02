@@ -50,6 +50,31 @@ app.post("/login", (req, res) => {
   });
 });
 
+app.get("/feed/:id", (req, res) => {
+  const id = req.params.id;
+
+  const sql = `
+    SELECT * FROM usuarios
+    WHERE id != ?
+    AND id NOT IN (
+      SELECT para_usuario FROM likes WHERE de_usuario = ?
+    )
+    AND id NOT IN (
+      SELECT para_usuario FROM dislikes WHERE de_usuario = ?
+    )
+    LIMIT 20
+  `;
+
+  db.query(sql, [id, id, id], (err, result) => {
+    if (err) {
+      console.log("ERROR FEED:", err);
+      return res.status(500).json(err);
+    }
+
+    res.json(result);
+  });
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
