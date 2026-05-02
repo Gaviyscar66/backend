@@ -117,6 +117,66 @@ app.post("/nope", (req, res) => {
   });
 });
 
+app.get("/perfil/:id", (req, res) => {
+  const id = req.params.id;
+
+  const sql = "SELECT * FROM usuarios WHERE id = ?";
+
+  db.query(sql, [id], (err, result) => {
+    if (err) return res.status(500).json(err);
+
+    res.json(result[0]);
+  });
+});
+
+app.put("/perfil/:id", (req, res) => {
+  const id = req.params.id;
+
+  const {
+    nombre,
+    apellido,
+    foto,
+    hobbies,
+    intereses,
+    ocupacion,
+    buscando,
+    bio
+  } = req.body;
+
+  const sql = `
+    UPDATE usuarios
+    SET nombre = ?,
+        apellido = ?,
+        foto = ?,
+        hobbies = ?,
+        intereses = ?,
+        ocupacion = ?,
+        buscando = ?,
+        bio = ?
+    WHERE id = ?
+  `;
+
+  db.query(
+    sql,
+    [
+      nombre,
+      apellido,
+      foto,
+      hobbies,
+      intereses,
+      ocupacion,
+      buscando,
+      bio,
+      id
+    ],
+    (err) => {
+      if (err) return res.status(500).json(err);
+
+      res.json("Perfil actualizado");
+    }
+  );
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
