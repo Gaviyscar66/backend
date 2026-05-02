@@ -120,41 +120,30 @@ app.post("/nope", (req, res) => {
 app.post("/like", (req, res) => {
   const { de_usuario, para_usuario } = req.body;
 
-  // 1. Usamos "INSERT IGNORE" para que si ya existe el like, no lance error 500
-  const sql = `
-    INSERT IGNORE INTO likes (de_usuario, para_usuario)
-    VALUES (?, ?)
-  `;
+  // 1. Usamos INSERT IGNORE para que si ya existe, no lance error
+  const sql = "INSERT IGNORE INTO likes (de_usuario, para_usuario) VALUES (?, ?)";
 
   db.query(sql, [de_usuario, para_usuario], (err) => {
     if (err) {
-      console.error("ERROR AL INSERTAR LIKE:", err);
-      return res.status(500).json({ error: "No se pudo guardar el like" });
+      console.error("Error en INSERT:", err); // Esto saldrá en los logs de Railway
+      return res.status(500).json({ mensaje: "Error al guardar el like", detalle: err });
     }
 
-    // 2. Verificamos el Match
-    const matchSql = `
-      SELECT * FROM likes 
-      WHERE de_usuario = ? AND para_usuario = ?
-    `;
+    // 2. Consulta de Match con manejo de error explícito
+    const matchSql = "SELECT * FROM likes WHERE de_usuario = ? AND para_usuario = ?";
 
-    db.query(matchSql, [para_usuario, de_usuario], (err, result) => {
-      // SIEMPRE verifica el error en consultas anidadas
-      if (err) {
-        console.error("ERROR AL BUSCAR MATCH:", err);
-        return res.status(500).json({ error: "Error al procesar match" });
+    db.query(matchSql, [para_usuario, de_usuario], (errMatch, resultMatch) => {
+      if (errMatch) {
+        console.error("Error en Match Query:", errMatch);
+        return res.status(500).json({ mensaje: "Error al buscar match" });
       }
 
-      // Si result existe y tiene filas, es match
-      if (result && result.length > 0) {
-        res.json({ match: true });
-      } else {
-        res.json({ match: false });
-      }
+      // Verificamos que resultMatch sea un array antes de leer .length
+      const esMatch = resultMatch && resultMatch.length > 0;
+      res.json({ match: esMatch });
     });
   });
 });
-
 app.put("/perfil/:id", (req, res) => {
   const id = req.params.id;
 
