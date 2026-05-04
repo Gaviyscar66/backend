@@ -55,7 +55,7 @@ app.post("/login", (req, res) => {
 });
 
 /* =========================
-   🔹 FEED (SIN FILTROS PARA PRUEBAS)
+   🔹 FEED
 ========================= */
 app.get("/feed/:id", (req, res) => {
   const id = req.params.id;
@@ -70,7 +70,6 @@ app.get("/feed/:id", (req, res) => {
   db.query(sql, [id], (err, result) => {
     if (err) return res.status(500).json(err);
 
-    console.log("Feed usuarios:", result.length); // DEBUG
     res.json(result);
   });
 });
@@ -89,7 +88,6 @@ app.post("/like", (req, res) => {
   db.query(sql, [de_usuario, para_usuario], (err) => {
     if (err) return res.status(500).json(err);
 
-    // 🔥 verificar match
     const matchSql = `
       SELECT * FROM likes 
       WHERE de_usuario = ? AND para_usuario = ?
@@ -166,6 +164,9 @@ app.put("/user/:id", (req, res) => {
   );
 });
 
+/* =========================
+   🔹 OBTENER FOTOS
+========================= */
 app.get("/fotos/:user_id", (req, res) => {
   const { user_id } = req.params;
 
@@ -178,6 +179,43 @@ app.get("/fotos/:user_id", (req, res) => {
 
     res.json(result);
   });
+});
+
+/* =========================
+   🔹 AGREGAR FOTO (🔥 CLAVE)
+========================= */
+app.post("/fotos", (req, res) => {
+  const { user_id, url } = req.body;
+
+  if (!user_id || !url) {
+    return res.status(400).json("Faltan datos");
+  }
+
+  // 🔥 limitar a 4 fotos
+  db.query(
+    "SELECT COUNT(*) AS total FROM fotos WHERE user_id = ?",
+    [user_id],
+    (err, result) => {
+      if (err) return res.status(500).json(err);
+
+      if (result[0].total >= 4) {
+        return res.status(400).json("Máximo 4 fotos");
+      }
+
+      db.query(
+        "INSERT INTO fotos (user_id, url) VALUES (?, ?)",
+        [user_id, url],
+        (err2) => {
+          if (err2) {
+            console.log("Error insertando foto:", err2);
+            return res.status(500).json(err2);
+          }
+
+          res.json("Foto agregada");
+        }
+      );
+    }
+  );
 });
 
 /* =========================
