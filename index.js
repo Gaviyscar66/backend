@@ -166,6 +166,20 @@ app.put("/user/:id", (req, res) => {
   );
 });
 
+app.get("/fotos/:user_id", (req, res) => {
+  const { user_id } = req.params;
+
+  const sql = `
+    SELECT * FROM fotos WHERE user_id = ?
+  `;
+
+  db.query(sql, [user_id], (err, result) => {
+    if (err) return res.status(500).json(err);
+
+    res.json(result);
+  });
+});
+
 /* =========================
    🔹 SERVER
 ========================= */
