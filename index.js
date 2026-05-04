@@ -95,6 +95,33 @@ app.post("/like", (req, res) => {
   });
 });
 
+app.get("/user/:id", (req, res) => {
+  const { id } = req.params;
+
+  db.query(
+    "SELECT * FROM usuarios WHERE id = ?",
+    [id],
+    (err, result) => {
+      if (err) return res.status(500).json(err);
+      res.json(result[0]);
+    }
+  );
+});
+
+app.put("/user/:id", (req, res) => {
+  const { id } = req.params;
+  const { bio, foto } = req.body;
+
+  db.query(
+    "UPDATE usuarios SET bio = ?, foto = ? WHERE id = ?",
+    [bio, foto, id],
+    (err) => {
+      if (err) return res.status(500).json(err);
+      res.json("Actualizado");
+    }
+  );
+});
+
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
