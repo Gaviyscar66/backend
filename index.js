@@ -218,6 +218,25 @@ app.post("/fotos", (req, res) => {
   );
 });
 
+app.delete("/fotos/:id/:user_id", (req, res) => {
+  const { id, user_id } = req.params;
+
+  const sql = `
+    DELETE FROM fotos 
+    WHERE id = ? AND user_id = ?
+  `;
+
+  db.query(sql, [id, user_id], (err, result) => {
+    if (err) return res.status(500).json(err);
+
+    if (result.affectedRows === 0) {
+      return res.status(403).json("No autorizado");
+    }
+
+    res.json("Foto eliminada");
+  });
+});
+
 /* =========================
    🔹 SERVER
 ========================= */
