@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const multer = require("multer"); // 🔥 IMPORTANTE: Importamos multer
+const path = require("path");     // 🔥 IMPORTANTE: Importamos path
 require("dotenv").config();
 
 const db = require("./db");
@@ -8,6 +10,25 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+/* =========================
+   🔥 CONFIGURACIÓN MULTIMEDIA
+========================= */
+// Hacemos pública la carpeta 'uploads' para que el frontend pueda cargar las imágenes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Configuramos cómo y dónde guardará Multer los archivos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Todo se guardará en la carpeta 'uploads'
+  },
+  filename: (req, file, cb) => {
+    // Genera un nombre único: timestamp actual + extensión original (.png, .jpg)
+    cb(null, Date.now() + path.extname(file.originalname)); 
+  }
+});
+const upload = multer({ storage: storage });
+
 
 /* =========================
    🔹 REGISTER
@@ -26,7 +47,6 @@ app.post("/register", (req, res) => {
       console.log("ERROR REGISTER:", err);
       return res.status(500).json(err);
     }
-
     res.json("Usuario registrado");
   });
 });
@@ -69,7 +89,6 @@ app.get("/feed/:id", (req, res) => {
 
   db.query(sql, [id], (err, result) => {
     if (err) return res.status(500).json(err);
-
     res.json(result);
   });
 });
@@ -95,9 +114,7 @@ app.post("/like", (req, res) => {
 
     db.query(matchSql, [para_usuario, de_usuario], (err2, result2) => {
       if (err2) return res.status(500).json(err2);
-
       const match = result2.length > 0;
-
       res.json({ match });
     });
   });
@@ -116,7 +133,6 @@ app.post("/nope", (req, res) => {
 
   db.query(sql, [de_usuario, para_usuario], (err) => {
     if (err) return res.status(500).json(err);
-
     res.json("Nope guardado");
   });
 });
@@ -135,30 +151,38 @@ app.get("/user/:id", (req, res) => {
 
   db.query(sql, [id], (err, result) => {
     if (err) return res.status(500).json(err);
-
     res.json(result[0]);
   });
 });
 
 /* =========================
-   🔹 ACTUALIZAR PERFIL
+   🔥 ACTUALIZAR PERFIL
 ========================= */
-app.put("/user/:id", (req, res) => {
+// Añadimos el middleware upload.single('foto') para interceptar el archivo
+app.put("/user/:id", upload.single('foto'), (req, res) => {
   const { id } = req.params;
-  const { foto, bio, hobbies, intereses, ocupacion, buscando } = req.body;
+  const { bio, hobbies, intereses, ocupacion, buscando } = req.body;
 
+  let fotoUrl = null;
+
+  // Si el frontend envió un archivo, generamos su URL pública
+  if (req.file) {
+    const baseUrl = req.protocol + '://' + req.get('host'); // Ejemplo: https://backend-production...
+    fotoUrl = `${baseUrl}/uploads/${req.file.filename}`;
+  }
+
+  // COALESCE(?, foto) asegura que si fotoUrl es null, se mantenga la foto que ya estaba en la DB
   const sql = `
     UPDATE usuarios 
-    SET foto = ?, bio = ?, hobbies = ?, intereses = ?, ocupacion = ?, buscando = ?
+    SET foto = COALESCE(?, foto), bio = ?, hobbies = ?, intereses = ?, ocupacion = ?, buscando = ?
     WHERE id = ?
   `;
 
   db.query(
     sql,
-    [foto, bio, hobbies, intereses, ocupacion, buscando, id],
+    [fotoUrl, bio, hobbies, intereses, ocupacion, buscando, id],
     (err) => {
       if (err) return res.status(500).json(err);
-
       res.json("Perfil actualizado");
     }
   );
@@ -176,22 +200,27 @@ app.get("/fotos/:user_id", (req, res) => {
 
   db.query(sql, [user_id], (err, result) => {
     if (err) return res.status(500).json(err);
-
     res.json(result);
   });
 });
 
 /* =========================
-   🔹 AGREGAR FOTO (🔥 CLAVE)
+   🔥 AGREGAR FOTO (A LA GALERÍA)
 ========================= */
-app.post("/fotos", (req, res) => {
-  const { user_id, url } = req.body;
+// Interceptamos la imagen de la galería
+app.post("/fotos", upload.single('foto'), (req, res) => {
+  const { user_id } = req.body;
 
-  if (!user_id || !url) {
-    return res.status(400).json("Faltan datos");
+  // Verificamos que envíen el ID y que Multer haya capturado el archivo
+  if (!user_id || !req.file) {
+    return res.status(400).json("Faltan datos o la imagen no se subió");
   }
 
-  // 🔥 limitar a 4 fotos
+  // Construimos la URL pública
+  const baseUrl = req.protocol + '://' + req.get('host');
+  const url = `${baseUrl}/uploads/${req.file.filename}`;
+
+  // Limitar a 4 fotos
   db.query(
     "SELECT COUNT(*) AS total FROM fotos WHERE user_id = ?",
     [user_id],
@@ -210,7 +239,6 @@ app.post("/fotos", (req, res) => {
             console.log("Error insertando foto:", err2);
             return res.status(500).json(err2);
           }
-
           res.json("Foto agregada");
         }
       );
@@ -232,7 +260,6 @@ app.delete("/fotos/:id/:user_id", (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(403).json("No autorizado");
     }
-
     res.json("Foto eliminada");
   });
 });
