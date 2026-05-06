@@ -310,6 +310,40 @@ app.get("/matches/:id", (req, res) => {
   });
 });
 
+/* ==========================================
+   ❤️ HISTORIAL DE LIKES (REEMPLAZA CHATSLIST)
+   ========================================== */
+app.get("/likes-historial/:id", (req, res) => {
+  const { id } = req.params;
+
+  // 1. Likes que tú has dado (Tus Likes)
+  const sqlEnviados = `
+    SELECT DISTINCT u.id, u.nombre, u.foto, u.ocupacion 
+    FROM usuarios u
+    JOIN likes l ON l.para_usuario = u.id
+    WHERE l.de_usuario = ?
+  `;
+
+  // 2. Personas que te han dado like a ti (¡Les gustas!)
+  const sqlRecibidos = `
+    SELECT DISTINCT u.id, u.nombre, u.foto, u.ocupacion 
+    FROM usuarios u
+    JOIN likes l ON l.de_usuario = u.id
+    WHERE l.para_usuario = ?
+  `;
+
+  db.query(sqlEnviados, [id], (err1, enviados) => {
+    if (err1) return res.status(500).json(err1);
+
+    db.query(sqlRecibidos, [id], (err2, recibidos) => {
+      if (err2) return res.status(500).json(err2);
+
+      // Enviamos ambas listas al frontend
+      res.json({ enviados, recibidos });
+    });
+  });
+});
+
 /* =========================
    🔹 SERVER
 ========================= */
