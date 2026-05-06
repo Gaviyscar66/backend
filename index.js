@@ -265,6 +265,51 @@ app.delete("/fotos/:id/:user_id", (req, res) => {
 });
 
 /* =========================
+   💬 SISTEMA DE CHAT
+========================= */
+
+// Enviar un mensaje
+app.post("/mensajes", (req, res) => {
+  const { de_id, para_id, contenido } = req.body;
+  const sql = "INSERT INTO mensajes (de_id, para_id, contenido) VALUES (?, ?, ?)";
+  db.query(sql, [de_id, para_id, contenido], (err) => {
+    if (err) return res.status(500).json(err);
+    res.json("Mensaje enviado");
+  });
+});
+
+// Obtener mensajes entre dos personas
+app.get("/mensajes/:user1/:user2", (req, res) => {
+  const { user1, user2 } = req.params;
+  const sql = `
+    SELECT * FROM mensajes 
+    WHERE (de_id = ? AND para_id = ?) 
+    OR (de_id = ? AND para_id = ?) 
+    ORDER BY fecha ASC
+  `;
+  db.query(sql, [user1, user2, user2, user1], (err, result) => {
+    if (err) return res.status(500).json(err);
+    res.json(result);
+  });
+});
+
+// Obtener lista de personas con las que tengo match (mis chats activos)
+app.get("/matches/:id", (req, res) => {
+  const { id } = req.params;
+  const sql = `
+    SELECT u.id, u.nombre, u.foto 
+    FROM usuarios u
+    JOIN likes l1 ON l1.para_usuario = u.id
+    JOIN likes l2 ON l2.de_usuario = u.id
+    WHERE l1.de_usuario = ? AND l2.para_usuario = ?
+  `;
+  db.query(sql, [id, id], (err, result) => {
+    if (err) return res.status(500).json(err);
+    res.json(result);
+  });
+});
+
+/* =========================
    🔹 SERVER
 ========================= */
 const PORT = process.env.PORT || 3001;
