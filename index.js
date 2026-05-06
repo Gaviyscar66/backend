@@ -292,12 +292,13 @@ app.get("/mensajes/:user1/:user2", (req, res) => {
     res.json(result);
   });
 });
-
 // Obtener lista de personas con las que tengo match (mis chats activos)
 app.get("/matches/:id", (req, res) => {
   const { id } = req.params;
+  
+  // 🔥 AGREGAMOS "DISTINCT" para limpiar duplicados en la consulta
   const sql = `
-    SELECT u.id, u.nombre, u.foto 
+    SELECT DISTINCT u.id, u.nombre, u.foto 
     FROM usuarios u
     JOIN likes l1 ON l1.para_usuario = u.id
     JOIN likes l2 ON l2.de_usuario = u.id
